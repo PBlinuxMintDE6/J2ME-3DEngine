@@ -68,14 +68,14 @@ public class Midlet extends MIDlet {
         private Polygon plane;
 
         {
-            float[] v0 = {-0.5f, -0.5f, -2f};
-            float[] v1 = {0.5f, -0.5f, -2f};
-            float[] v2 = {-0.5f, 0.5f, -2f};
+            float[] v0 = {-0.5f, -0.5f, 0f};
+            float[] v1 = {0.5f, -0.5f, 0f};
+            float[] v2 = {-0.5f, 0.5f, 0f};
             Triangle triangle0 = new Triangle(v0, v1, v2, randomColour());
 
-            float[] v3 = {0.5f, 0.5f, -2f};
-            float[] v4 = {-0.5f, 0.5f, -2f};
-            float[] v5 = {0.5f, -0.5f, -2f};
+            float[] v3 = {0.5f, 0.5f, 0f};
+            float[] v4 = {-0.5f, 0.5f, 0f};
+            float[] v5 = {0.5f, -0.5f, 0f};
 
             Triangle triangle1 = new Triangle(v3, v4, v5, randomColour());
             plane = new Polygon(0f, 0f, -2f);
@@ -86,15 +86,15 @@ public class Midlet extends MIDlet {
         private Polygon floor;
 
         {
-            floor = new Polygon(0f, 0f, -2f);
-            float[] v0 = {-0.5f, 0.5f, -2.5f};
-            float[] v1 = {-0.5f, 0.5f, -1.5f};
-            float[] v2 = {0.5f, 0.5f, -2.5f};
+            floor = new Polygon(0f, 0f, -0f);
+            float[] v0 = {-0.5f, 0.5f, -0.5f};
+            float[] v1 = {-0.5f, 0.5f, 0.5f};
+            float[] v2 = {0.5f, 0.5f, -0.5f};
             Triangle triangle0 = new Triangle(v0, v1, v2, randomColour());
 
-            float[] v3 = {0.5f, 0.5f, -2.5f};
-            float[] v4 = {-0.5f, 0.5f, -1.5f};
-            float[] v5 = {0.5f, 0.5f, -1.5f};
+            float[] v3 = {0.5f, 0.5f, -0.5f};
+            float[] v4 = {-0.5f, 0.5f, 0.5f};
+            float[] v5 = {0.5f, 0.5f, 0.5f};
             Triangle triangle1 = new Triangle(v3, v4, v5, randomColour());
             plane.addTriangle(triangle0);
             plane.addTriangle(triangle1);
@@ -220,6 +220,11 @@ public class Midlet extends MIDlet {
             g.setColor(255, 255, 255);
         }
 
+        private String f3(float v) {
+            int a = (int) (v * 1000f);
+            return Float.toString((float) a / 1000.0f);
+        }
+
         private void drawPolygon(Graphics g, Polygon polygon, float aspect, float focal, Projector projector) {
             Vector triangles = polygon.getTrianglesInWorldSpace(world);
 
@@ -257,10 +262,20 @@ public class Midlet extends MIDlet {
             // Debug rendering
             if (Configuration.DEBUG_RENDERING) {
                 g.setColor(255, 255, 255);
-                g.drawString("Pos X/Y/Z: " + Float.toString(camera.x) + "f/" + Float.toString(camera.y) + "f/" + Float.toString(camera.z) + "f", 0, 0, Graphics.TOP | Graphics.LEFT);
-                g.drawString("Rot X/Y/Z: " + Float.toString(camera.rotX) + "f/" + Float.toString(camera.rotY) + "f/" + Float.toString(camera.rotZ) + "f", 0, 16, Graphics.TOP | Graphics.LEFT);
-                g.drawString("Last keycode: " + Integer.toString(lastInput), 0, 32, Graphics.TOP | Graphics.LEFT);
-                g.drawString("FPS/MSPF: " + Integer.toString(lastFPS) + "/" + Long.toString(lastFrameTime) + "ms", 0, 48, Graphics.TOP | Graphics.LEFT);
+
+                g.drawString(
+                        "Pos X/Y/Z: " + f3(camera.x) + "f/" + f3(camera.y) + "f/" + f3(camera.z) + "f",
+                        0, 0, Graphics.TOP | Graphics.LEFT
+                );
+
+                g.drawString(
+                        "Rot (quat): " + f3(camera.orientation.x) + " / " + f3(camera.orientation.y) + " / "
+                        + f3(camera.orientation.z) + " / " + f3(camera.orientation.w),
+                        0, 16, Graphics.TOP | Graphics.LEFT
+                );
+
+                g.drawString("Last keycode: " + lastInput, 0, 32, Graphics.TOP | Graphics.LEFT);
+                g.drawString("FPS/MSPF: " + lastFPS + "/" + lastFrameTime + "ms", 0, 48, Graphics.TOP | Graphics.LEFT);
             }
         }
 
@@ -313,18 +328,34 @@ public class Midlet extends MIDlet {
             lastInput = keyCode;
 
             switch (keyCode) {
-                case -3:
-                    camera.rotY -= 0.1f;
+                case -3: {
+                    Quaternion q = Quaternion.fromAxisAngle(0, 1, 0, -0.1f);
+                    camera.orientation = q.multiply(camera.orientation);
                     break;
-                case -4:
-                    camera.rotY += 0.1f;
+                }
+                case -4: {
+                    Quaternion q = Quaternion.fromAxisAngle(0, 1, 0, 0.1f);
+                    camera.orientation = q.multiply(camera.orientation);
                     break;
-                case -1:
-                    camera.rotX -= 0.1f;
+                }
+                case -1: {
+                    float[] right = camera.rotateVector(camera.orientation, 1, 0, 0);
+                    Quaternion q = Quaternion.fromAxisAngle(
+                            right[0], right[1], right[2],
+                            -0.1f
+                    );
+                    camera.orientation = q.multiply(camera.orientation);
                     break;
-                case -2:
-                    camera.rotX += 0.1f;
+                }
+                case -2: {
+                    float[] right = camera.rotateVector(camera.orientation, 1, 0, 0);
+                    Quaternion q = Quaternion.fromAxisAngle(
+                            right[0], right[1], right[2],
+                            0.1f
+                    );
+                    camera.orientation = q.multiply(camera.orientation);
                     break;
+                }
                 case KEY_NUM2:
                     dz = -0.1f;
                     break;
@@ -340,33 +371,12 @@ public class Midlet extends MIDlet {
             }
 
             if (dx != 0 || dz != 0) {
-                float sinY = (float) Math.sin(camera.rotY);
-                float cosY = (float) Math.cos(camera.rotY);
-                float sinX = (float) Math.sin(camera.rotX);
-                float cosX = (float) Math.cos(camera.rotX);
-                float sinZ = (float) Math.sin(camera.rotZ);
-                float cosZ = (float) Math.cos(camera.rotZ);
-
-                float x1 = dx * cosY + dz * sinY;
-                float y1 = dy;
-                float z1 = (-dx) * sinY + dz * cosY;
-
-                float x2 = x1;
-                float y2 = y1 * cosX - z1 * sinX;
-                float z2 = y1 * sinX + z1 * cosX;
-
-                float x3 = x2 * cosZ - y2 * sinZ;
-                float y3 = x2 * sinZ + y2 * cosZ;
-                float z3 = z2;
-
-                float moveX = x3;
-                float moveY = y3;
-                float moveZ = z3;
+                float[] move = camera.rotateVector(camera.orientation, dx, dy, dz);
 
                 camera.setPosition(
-                        camera.x + moveX,
-                        camera.y + moveY,
-                        camera.z + moveZ
+                        camera.x + move[0],
+                        camera.y + move[1],
+                        camera.z + move[2]
                 );
             }
         }
