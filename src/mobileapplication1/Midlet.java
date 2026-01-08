@@ -281,10 +281,10 @@ public class Midlet extends MIDlet {
                     dz = 0.1f;
                     break;
                 case KEY_NUM4:
-                    dx = -0.1f;
+                    dx = 0.1f;
                     break;
                 case KEY_NUM6:
-                    dx = 0.1f;
+                    dx = -0.1f;
                     break;
             }
 
@@ -293,20 +293,24 @@ public class Midlet extends MIDlet {
                 float cosY = (float) Math.cos(camera.rotY);
                 float sinX = (float) Math.sin(camera.rotX);
                 float cosX = (float) Math.cos(camera.rotX);
+                float sinZ = (float) Math.sin(camera.rotZ);
+                float cosZ = (float) Math.cos(camera.rotZ);
 
-                // Right vector (remember +X = left)
-                float rightX = cosY;
-                float rightZ = sinY;
-
-                // Forward vector (−Z forward, pitch = −X)
-                float forwardX = sinY * cosX;
-                float forwardY = -sinX;
-                float forwardZ = -cosY * cosX;
-
-                // Apply input signs
-                float moveX = dx * rightX + dz * forwardX;
-                float moveY = dz * forwardY;
-                float moveZ = dx * rightZ + -dz * forwardZ;
+                float x1 = dx * cosY + dz * sinY;
+                float y1 = dy;
+                float z1 = (-dx) * sinY + dz * cosY;
+                
+                float x2 = x1;
+                float y2 = y1 * cosX - z1 * sinX;
+                float z2 = y1 * sinX + z1 * cosX;
+                
+                float x3 = x2 * cosZ - y2 * sinZ;
+                float y3 = x2 * sinZ + y2 * cosZ;
+                float z3 = z2;
+                
+                float moveX = x3;
+                float moveY = y3;
+                float moveZ = z3;
 
                 camera.setPosition(
                         camera.x + moveX,
