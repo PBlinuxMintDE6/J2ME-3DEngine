@@ -7,6 +7,8 @@ package mobileapplication1;
 
 import javax.microedition.midlet.*;
 import javax.microedition.lcdui.*;
+import java.util.Vector;
+import java.util.Random;
 
 /**
  * @author c
@@ -32,6 +34,19 @@ public class Midlet extends MIDlet {
 
     class GameCanvas extends Canvas {
 
+        Random random = new Random();
+
+        private int[] randomColour() {
+            int r, g, b;
+            r = random.nextInt(255);
+            g = random.nextInt(255);
+            b = random.nextInt(255);
+
+            int[] col = {r, g, b};
+
+            return col;
+        }
+
         static final int S_INSIDE = 0;
         static final int S_LEFT = 1;
         static final int S_RIGHT = 2;
@@ -50,26 +65,40 @@ public class Midlet extends MIDlet {
         World world = new World();
         Camera camera = new Camera(0, 0, 0);
 
-        float[] v0 = {-0.5f, -0.5f, -2f};
-        float[] v1 = {0.5f, -0.5f, -2f};
-        float[] v2 = {-0.5f, 0.5f, -2f};
-        Triangle triangle = new Triangle(v0, v1, v2);
+        private Polygon plane;
 
-        float[] v3 = {0.5f, 0.5f, -2f};
-        float[] v4 = {-0.5f, 0.5f, -2f};
-        float[] v5 = {0.5f, -0.5f, -2f};
+        {
+            float[] v0 = {-0.5f, -0.5f, -2f};
+            float[] v1 = {0.5f, -0.5f, -2f};
+            float[] v2 = {-0.5f, 0.5f, -2f};
+            Triangle triangle0 = new Triangle(v0, v1, v2, randomColour());
 
-        Triangle triangle1 = new Triangle(v3, v4, v5);
+            float[] v3 = {0.5f, 0.5f, -2f};
+            float[] v4 = {-0.5f, 0.5f, -2f};
+            float[] v5 = {0.5f, -0.5f, -2f};
 
-        float[] pl0 = {-0.5f, 0.5f, -2.5f};
-        float[] pl1 = {-0.5f, 0.5f, -1.5f};
-        float[] pl2 = {0.5f, 0.5f, -2.5f};
-        Triangle plane0 = new Triangle(pl0, pl1, pl2);
+            Triangle triangle1 = new Triangle(v3, v4, v5, randomColour());
+            plane = new Polygon(0f, 0f, -2f);
+            plane.addTriangle(triangle0);
+            plane.addTriangle(triangle1);
+        }
 
-        float[] pl3 = {0.5f, 0.5f, -2.5f};
-        float[] pl4 = {-0.5f, 0.5f, -1.5f};
-        float[] pl5 = {0.5f, 0.5f, -1.5f};
-        Triangle plane1 = new Triangle(pl3, pl4, pl5);
+        private Polygon floor;
+
+        {
+            floor = new Polygon(0f, 0f, -2f);
+            float[] v0 = {-0.5f, 0.5f, -2.5f};
+            float[] v1 = {-0.5f, 0.5f, -1.5f};
+            float[] v2 = {0.5f, 0.5f, -2.5f};
+            Triangle triangle0 = new Triangle(v0, v1, v2, randomColour());
+
+            float[] v3 = {0.5f, 0.5f, -2.5f};
+            float[] v4 = {-0.5f, 0.5f, -1.5f};
+            float[] v5 = {0.5f, 0.5f, -1.5f};
+            Triangle triangle1 = new Triangle(v3, v4, v5, randomColour());
+            plane.addTriangle(triangle0);
+            plane.addTriangle(triangle1);
+        }
 
         final float aspect = (float) getWidth() / (float) getHeight();
         final float focal = (float) (1 / Math.tan(Configuration.FOV_DEGREES / 2));
@@ -173,6 +202,7 @@ public class Midlet extends MIDlet {
 
         private void drawTri(Graphics g, Triangle tri, float aspect, float focal, Projector projector) {
             int[][] screenPoints = tri.project(camera, world, aspect, focal, projector);
+            g.setColor(tri.colour[0], tri.colour[1], tri.colour[2]);
             if ((screenPoints != null) && (Configuration.WIREFRAME_RENDER)) {
                 drawClippedLine(g, screenPoints[0], screenPoints[1]);
                 drawClippedLine(g, screenPoints[1], screenPoints[2]);
@@ -187,6 +217,33 @@ public class Midlet extends MIDlet {
                         screenPoints[2][1]
                 );
             }
+            g.setColor(255, 255, 255);
+        }
+
+        private void drawPolygon(Graphics g, Polygon polygon, float aspect, float focal, Projector projector) {
+            Vector triangles = polygon.getTrianglesInWorldSpace(world);
+
+            // Sort triangles by depth (z-value of their centroid) manually
+            for (int i = 0; i < triangles.size() - 1; i++) {
+                for (int j = 0; j < triangles.size() - i - 1; j++) {
+                    Triangle t1 = (Triangle) triangles.elementAt(j);
+                    Triangle t2 = (Triangle) triangles.elementAt(j + 1);
+
+                    float z1 = (t1.v0[2] + t1.v1[2] + t1.v2[2]) / 3;
+                    float z2 = (t2.v0[2] + t2.v1[2] + t2.v2[2]) / 3;
+
+                    if (z1 > z2) {
+                        triangles.setElementAt(t2, j);
+                        triangles.setElementAt(t1, j + 1);
+                    }
+                }
+            }
+
+            // Draw triangles in sorted order
+            for (int i = 0; i < triangles.size(); i++) {
+                Triangle triangle = (Triangle) triangles.elementAt(i);
+                drawTri(g, triangle, aspect, focal, projector);
+            }
         }
 
         protected void paint(Graphics g) {
@@ -194,14 +251,8 @@ public class Midlet extends MIDlet {
             g.fillRect(0, 0, getWidth(), getHeight());
 
             // Draw the triangles
-            g.setColor(0, 0, 255);
-            drawTri(g, plane0, aspect, focal, projector);
-            g.setColor(0, 127, 127);
-            drawTri(g, plane1, aspect, focal, projector);
-            g.setColor(0, 255, 0);
-            drawTri(g, triangle, aspect, focal, projector);
-            g.setColor(255, 0, 0);
-            drawTri(g, triangle1, aspect, focal, projector);
+            drawPolygon(g, plane, aspect, focal, projector);
+            drawPolygon(g, floor, aspect, focal, projector);
 
             // Debug rendering
             if (Configuration.DEBUG_RENDERING) {
@@ -299,15 +350,15 @@ public class Midlet extends MIDlet {
                 float x1 = dx * cosY + dz * sinY;
                 float y1 = dy;
                 float z1 = (-dx) * sinY + dz * cosY;
-                
+
                 float x2 = x1;
                 float y2 = y1 * cosX - z1 * sinX;
                 float z2 = y1 * sinX + z1 * cosX;
-                
+
                 float x3 = x2 * cosZ - y2 * sinZ;
                 float y3 = x2 * sinZ + y2 * cosZ;
                 float z3 = z2;
-                
+
                 float moveX = x3;
                 float moveY = y3;
                 float moveZ = z3;

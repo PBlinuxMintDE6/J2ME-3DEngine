@@ -39,6 +39,15 @@ public class World {
         return new float[]{ x, y, z };
     }
 
+    // Translate a point from polygon space to world space
+    public float[] applyWorldTranslation(float[] point, float[] position) {
+        return new float[]{
+            point[0] + position[0],
+            point[1] + position[1],
+            point[2] + position[2]
+        };
+    }
+
     // Update world rotation (delta)
     public void rotate(float dX, float dY, float dZ) {
         rotX += dX;
