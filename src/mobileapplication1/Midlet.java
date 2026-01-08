@@ -304,9 +304,9 @@ public class Midlet extends MIDlet {
                 float forwardZ = -cosY * cosX;
 
                 // Apply input signs
-                float moveX = (-dx) * rightX + (-dz) * forwardX;
-                float moveY = (-dz) * forwardY;
-                float moveZ = (-dx) * rightZ + (-dz) * forwardZ;
+                float moveX = dx * rightX + dz * forwardX;
+                float moveY = dz * forwardY;
+                float moveZ = dx * rightZ + -dz * forwardZ;
 
                 camera.setPosition(
                         camera.x + moveX,
