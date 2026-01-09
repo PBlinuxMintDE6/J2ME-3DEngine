@@ -446,7 +446,7 @@ public class Midlet extends MIDlet {
                     float[] right = camera.rotateVector(camera.orientation, 1, 0, 0);
                     Quaternion q = Quaternion.fromAxisAngle(
                             right[0], right[1], right[2],
-                            -0.1f
+                            0.1f
                     );
                     camera.orientation = q.multiply(camera.orientation);
                     break;
@@ -455,7 +455,7 @@ public class Midlet extends MIDlet {
                     float[] right = camera.rotateVector(camera.orientation, 1, 0, 0);
                     Quaternion q = Quaternion.fromAxisAngle(
                             right[0], right[1], right[2],
-                            0.1f
+                            -0.1f
                     );
                     camera.orientation = q.multiply(camera.orientation);
                     break;
