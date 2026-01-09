@@ -65,6 +65,96 @@ public class Midlet extends MIDlet {
         World world = new World();
         Camera camera = new Camera(0, 0, 0);
 
+        private Polygon cube;
+
+        {
+            cube = new Polygon(0f, 0f, -2f);
+
+            // Front face (z = 0.5)
+            float[] f0 = {-0.5f, -0.5f, 0.5f};
+            float[] f1 = {0.5f, -0.5f, 0.5f};
+            float[] f2 = {-0.5f, 0.5f, 0.5f};
+            Triangle ft0 = new Triangle(f0, f1, f2, randomColour());
+
+            float[] f3 = {0.5f, 0.5f, 0.5f};
+            float[] f4 = {-0.5f, 0.5f, 0.5f};
+            float[] f5 = {0.5f, -0.5f, 0.5f};
+            Triangle ft1 = new Triangle(f3, f4, f5, randomColour());
+
+            cube.addTriangle(ft0);
+            cube.addTriangle(ft1);
+
+            // Back face (z = -0.5)
+            float[] b0 = {-0.5f, -0.5f, -0.5f};
+            float[] b1 = {0.5f, -0.5f, -0.5f};
+            float[] b2 = {-0.5f, 0.5f, -0.5f};
+            Triangle bt0 = new Triangle(b2, b1, b0, randomColour());
+
+            float[] b3 = {0.5f, 0.5f, -0.5f};
+            float[] b4 = {-0.5f, 0.5f, -0.5f};
+            float[] b5 = {0.5f, -0.5f, -0.5f};
+            Triangle bt1 = new Triangle(b3, b4, b5, randomColour());
+
+            cube.addTriangle(bt0);
+            cube.addTriangle(bt1);
+
+            // Left face (x = -0.5)
+            float[] l0 = {-0.5f, -0.5f, -0.5f};
+            float[] l1 = {-0.5f, -0.5f, 0.5f};
+            float[] l2 = {-0.5f, 0.5f, -0.5f};
+            Triangle lt0 = new Triangle(l0, l1, l2, randomColour());
+
+            float[] l3 = {-0.5f, 0.5f, 0.5f};
+            float[] l4 = {-0.5f, 0.5f, -0.5f};
+            float[] l5 = {-0.5f, -0.5f, 0.5f};
+            Triangle lt1 = new Triangle(l3, l4, l5, randomColour());
+
+            cube.addTriangle(lt0);
+            cube.addTriangle(lt1);
+
+            // Right face (x = 0.5)
+            float[] r0 = {0.5f, -0.5f, -0.5f};
+            float[] r1 = {0.5f, -0.5f, 0.5f};
+            float[] r2 = {0.5f, 0.5f, -0.5f};
+            Triangle rt0 = new Triangle(r1, r0, r2, randomColour());
+
+            float[] r3 = {0.5f, 0.5f, 0.5f};
+            float[] r4 = {0.5f, -0.5f, 0.5f};
+            float[] r5 = {0.5f, 0.5f, -0.5f};
+            Triangle rt1 = new Triangle(r3, r4, r5, randomColour());
+
+            cube.addTriangle(rt0);
+            cube.addTriangle(rt1);
+
+            // Top face (y = 0.5)
+            float[] t0 = {-0.5f, 0.5f, -0.5f};
+            float[] t1 = {0.5f, 0.5f, -0.5f};
+            float[] t2 = {-0.5f, 0.5f, 0.5f};
+            Triangle tt0 = new Triangle(t0, t1, t2, randomColour());
+
+            float[] t3 = {0.5f, 0.5f, 0.5f};
+            float[] t4 = {-0.5f, 0.5f, 0.5f};
+            float[] t5 = {0.5f, 0.5f, -0.5f};
+            Triangle tt1 = new Triangle(t3, t4, t5, randomColour());
+
+            cube.addTriangle(tt0);
+            cube.addTriangle(tt1);
+
+            // Bottom face (y = -0.5)
+            float[] bo0 = {-0.5f, -0.5f, -0.5f};
+            float[] bo1 = {0.5f, -0.5f, -0.5f};
+            float[] bo2 = {-0.5f, -0.5f, 0.5f};
+            Triangle btr0 = new Triangle(bo2, bo1, bo0, randomColour());
+
+            float[] bo3 = {0.5f, -0.5f, 0.5f};
+            float[] bo4 = {-0.5f, -0.5f, 0.5f};
+            float[] bo5 = {0.5f, -0.5f, -0.5f};
+            Triangle btr1 = new Triangle(bo3, bo4, bo5, randomColour());
+
+            cube.addTriangle(btr0);
+            cube.addTriangle(btr1);
+        }
+
         private Polygon plane;
 
         {
@@ -203,7 +293,7 @@ public class Midlet extends MIDlet {
         private void drawTri(Graphics g, Triangle tri, float aspect, float focal, Projector projector) {
             int[][] screenPoints = tri.project(camera, world, aspect, focal, projector);
             g.setColor(tri.colour[0], tri.colour[1], tri.colour[2]);
-            if ((screenPoints != null) && (Configuration.WIREFRAME_RENDER)) {
+            if ((screenPoints != null) && (Configuration.WIREFRAME_RENDER == true)) {
                 drawClippedLine(g, screenPoints[0], screenPoints[1]);
                 drawClippedLine(g, screenPoints[1], screenPoints[2]);
                 drawClippedLine(g, screenPoints[2], screenPoints[0]);
@@ -227,26 +317,45 @@ public class Midlet extends MIDlet {
 
         private void drawPolygon(Graphics g, Polygon polygon, float aspect, float focal, Projector projector) {
             Vector triangles = polygon.getTrianglesInWorldSpace(world);
+            Vector cameraTriangles = new Vector();
 
-            // Sort triangles by depth (z-value of their centroid) manually
-            for (int i = 0; i < triangles.size() - 1; i++) {
-                for (int j = 0; j < triangles.size() - i - 1; j++) {
-                    Triangle t1 = (Triangle) triangles.elementAt(j);
-                    Triangle t2 = (Triangle) triangles.elementAt(j + 1);
+            // Transform all triangles into camera space
+            for (int i = 0; i < triangles.size(); i++) {
+                Triangle tri = (Triangle) triangles.elementAt(i);
+
+                float[] c0 = camera.worldToCamera(tri.v0[0], tri.v0[1], tri.v0[2]);
+                float[] c1 = camera.worldToCamera(tri.v1[0], tri.v1[1], tri.v1[2]);
+                float[] c2 = camera.worldToCamera(tri.v2[0], tri.v2[1], tri.v2[2]);
+
+                // Skip triangles completely behind the camera
+                if (c0[2] >= -0.01f && c1[2] >= -0.01f && c2[2] >= -0.01f) {
+                    continue;
+                }
+
+                // Create a temporary triangle in camera space (preserve colour)
+                Triangle camTri = new Triangle(c0, c1, c2, tri.colour);
+                cameraTriangles.addElement(camTri);
+            }
+
+            // Sort triangles by average z in camera space (Painter's Algorithm)
+            for (int i = 0; i < cameraTriangles.size() - 1; i++) {
+                for (int j = 0; j < cameraTriangles.size() - i - 1; j++) {
+                    Triangle t1 = (Triangle) cameraTriangles.elementAt(j);
+                    Triangle t2 = (Triangle) cameraTriangles.elementAt(j + 1);
 
                     float z1 = (t1.v0[2] + t1.v1[2] + t1.v2[2]) / 3;
                     float z2 = (t2.v0[2] + t2.v1[2] + t2.v2[2]) / 3;
 
                     if (z1 > z2) {
-                        triangles.setElementAt(t2, j);
-                        triangles.setElementAt(t1, j + 1);
+                        cameraTriangles.setElementAt(t2, j);
+                        cameraTriangles.setElementAt(t1, j + 1);
                     }
                 }
             }
 
             // Draw triangles in sorted order
-            for (int i = 0; i < triangles.size(); i++) {
-                Triangle triangle = (Triangle) triangles.elementAt(i);
+            for (int i = 0; i < cameraTriangles.size(); i++) {
+                Triangle triangle = (Triangle) cameraTriangles.elementAt(i);
                 drawTri(g, triangle, aspect, focal, projector);
             }
         }
@@ -256,8 +365,9 @@ public class Midlet extends MIDlet {
             g.fillRect(0, 0, getWidth(), getHeight());
 
             // Draw the triangles
-            drawPolygon(g, plane, aspect, focal, projector);
-            drawPolygon(g, floor, aspect, focal, projector);
+            //drawPolygon(g, plane, aspect, focal, projector);
+            //drawPolygon(g, floor, aspect, focal, projector);
+            drawPolygon(g, cube, aspect, focal, projector);
 
             // Debug rendering
             if (Configuration.DEBUG_RENDERING) {

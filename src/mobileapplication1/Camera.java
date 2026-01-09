@@ -66,6 +66,30 @@ public class Camera {
         orientation = pitchQ.multiply(orientation);
     }
 
+    public float[] worldToCamera(float px, float py, float pz) {
+
+        // 1. Translate world point relative to camera
+        float tx = px - this.x;
+        float ty = py - this.y;
+        float tz = pz - this.z;
+
+        // 2. Rotate by inverse camera orientation
+        Quaternion inv = this.orientation.conjugate();
+
+        float[] v = this.rotateVector(inv, tx, ty, tz);
+
+        tx = v[0];
+        ty = v[1];
+        tz = v[2];
+
+        // 3. Clipping: behind camera
+        if (tz >= -0.01f) {
+            return null;
+        }
+
+        return new float[]{tx, ty, tz};
+    }
+
     // Move the camera
     public void setPosition(float posX, float posY, float posZ) {
         x = posX;

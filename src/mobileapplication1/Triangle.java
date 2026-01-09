@@ -44,9 +44,9 @@ public class Triangle {
         float[] wv1 = world.applyWorldRotation(v1[0], v1[1], v1[2]);
         float[] wv2 = world.applyWorldRotation(v2[0], v2[1], v2[2]);
 
-        float[] c0 = CameraFuncs.worldToCamera(wv0[0], wv0[1], wv0[2], cam);
-        float[] c1 = CameraFuncs.worldToCamera(wv1[0], wv1[1], wv1[2], cam);
-        float[] c2 = CameraFuncs.worldToCamera(wv2[0], wv2[1], wv2[2], cam);
+        float[] c0 = cam.worldToCamera(wv0[0], wv0[1], wv0[2]);
+        float[] c1 = cam.worldToCamera(wv1[0], wv1[1], wv1[2]);
+        float[] c2 = cam.worldToCamera(wv2[0], wv2[1], wv2[2]);
 
         if (c0 == null || c1 == null || c2 == null) {
             return null;
