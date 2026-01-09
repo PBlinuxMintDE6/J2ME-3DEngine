@@ -326,6 +326,10 @@ public class Midlet extends MIDlet {
                 float[] c0 = camera.worldToCamera(tri.v0[0], tri.v0[1], tri.v0[2]);
                 float[] c1 = camera.worldToCamera(tri.v1[0], tri.v1[1], tri.v1[2]);
                 float[] c2 = camera.worldToCamera(tri.v2[0], tri.v2[1], tri.v2[2]);
+                
+                if (c0 == null || c1 == null || c2 == null) {
+                    continue;
+                }
 
                 // Skip triangles completely behind the camera
                 if (c0[2] >= -0.01f && c1[2] >= -0.01f && c2[2] >= -0.01f) {
