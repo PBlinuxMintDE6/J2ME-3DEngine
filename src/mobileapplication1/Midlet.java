@@ -62,10 +62,19 @@ public class Midlet extends MIDlet {
         private int lastFrameTime = 0;
         private int lastFPS = 0;
 
+        final float aspect = (float) getWidth() / (float) getHeight();
+
         World world = new World();
         Camera camera = new Camera(0, 0, 0);
+        Matrix4 view = camera.getViewMatrix();
+        Matrix4 proj = Matrix4.perspective(
+                Configuration.FOV_DEGREES,
+                aspect,
+                0.1f,
+                100f
+        );
 
-        private Polygon cube;
+        private final Polygon cube;
 
         {
             cube = new Polygon(0f, 0f, -2f);
@@ -155,7 +164,7 @@ public class Midlet extends MIDlet {
             cube.addTriangle(btr1);
         }
 
-        private Polygon plane;
+        private final Polygon plane;
 
         {
             float[] v0 = {-0.5f, -0.5f, 0f};
@@ -173,7 +182,7 @@ public class Midlet extends MIDlet {
             plane.addTriangle(triangle1);
         }
 
-        private Polygon floor;
+        private final Polygon floor;
 
         {
             floor = new Polygon(0f, 0f, -0f);
@@ -189,21 +198,6 @@ public class Midlet extends MIDlet {
             plane.addTriangle(triangle0);
             plane.addTriangle(triangle1);
         }
-
-        final float aspect = (float) getWidth() / (float) getHeight();
-        final float focal = (float) (1 / Math.tan(Configuration.FOV_DEGREES / 2));
-
-        Projector projector = new Projector() {
-            public int[] project(float x, float y, float z) {
-                float xN = (focal * x / aspect) / -z;
-                float yN = (y * focal) / -z;
-
-                int sx = (int) ((xN * 0.5f + 0.5f) * getWidth());
-                int sy = (int) ((1f - (yN * 0.5f + 0.5f)) * getHeight());
-
-                return new int[]{sx, sy};
-            }
-        };
 
         private int computeOutCode(int x, int y, int w, int h) {
             int code = S_INSIDE;
@@ -271,16 +265,6 @@ public class Midlet extends MIDlet {
             }
         }
 
-        public int[] project(float x, float y, float z) {
-            float xN = (focal * x / aspect) / -z;
-            float yN = (y * focal) / -z;
-
-            int sx = (int) ((xN * 0.5f + 0.5f) * getWidth());
-            int sy = (int) ((1f - (yN * 0.5f + 0.5f)) * getHeight());
-
-            return new int[]{sx, sy};
-        }
-
         private void drawClippedLine(Graphics g, int[] a, int[] b) {
             int[] p0 = {a[0], a[1]};
             int[] p1 = {b[0], b[1]};
@@ -290,21 +274,27 @@ public class Midlet extends MIDlet {
             }
         }
 
-        private void drawTri(Graphics g, Triangle tri, float aspect, float focal, Projector projector) {
-            int[][] screenPoints = tri.project(camera, world, aspect, focal, projector);
+        private void drawTri(Graphics g, Triangle tri) {
+            int[] p0 = Projection.projectVertex(tri.v0, view, proj, getWidth(), getHeight());
+            int[] p1 = Projection.projectVertex(tri.v1, view, proj, getWidth(), getHeight());
+            int[] p2 = Projection.projectVertex(tri.v2, view, proj, getWidth(), getHeight());
+
+            if (p0 == null || p1 == null || p2 == null) {
+                return;
+            }
             g.setColor(tri.colour[0], tri.colour[1], tri.colour[2]);
-            if ((screenPoints != null) && (Configuration.WIREFRAME_RENDER == true)) {
-                drawClippedLine(g, screenPoints[0], screenPoints[1]);
-                drawClippedLine(g, screenPoints[1], screenPoints[2]);
-                drawClippedLine(g, screenPoints[2], screenPoints[0]);
-            } else if (screenPoints != null) {
+            if (Configuration.WIREFRAME_RENDER == true) {
+                drawClippedLine(g, p0, p1);
+                drawClippedLine(g, p1, p2);
+                drawClippedLine(g, p2, p0);
+            } else {
                 g.fillTriangle(
-                        screenPoints[0][0],
-                        screenPoints[0][1],
-                        screenPoints[1][0],
-                        screenPoints[1][1],
-                        screenPoints[2][0],
-                        screenPoints[2][1]
+                        p0[0],
+                        p0[1],
+                        p1[0],
+                        p1[1],
+                        p2[0],
+                        p2[1]
                 );
             }
             g.setColor(255, 255, 255);
@@ -315,7 +305,7 @@ public class Midlet extends MIDlet {
             return Float.toString((float) a / 1000.0f);
         }
 
-        private void drawPolygon(Graphics g, Polygon polygon, float aspect, float focal, Projector projector) {
+        private void drawPolygon(Graphics g, Polygon polygon) {
             Vector triangles = polygon.getTrianglesInWorldSpace(world);
             Vector cameraTriangles = new Vector();
 
@@ -326,7 +316,7 @@ public class Midlet extends MIDlet {
                 float[] c0 = camera.worldToCamera(tri.v0[0], tri.v0[1], tri.v0[2]);
                 float[] c1 = camera.worldToCamera(tri.v1[0], tri.v1[1], tri.v1[2]);
                 float[] c2 = camera.worldToCamera(tri.v2[0], tri.v2[1], tri.v2[2]);
-                
+
                 if (c0 == null || c1 == null || c2 == null) {
                     continue;
                 }
@@ -360,7 +350,7 @@ public class Midlet extends MIDlet {
             // Draw triangles in sorted order
             for (int i = 0; i < cameraTriangles.size(); i++) {
                 Triangle triangle = (Triangle) cameraTriangles.elementAt(i);
-                drawTri(g, triangle, aspect, focal, projector);
+                drawTri(g, triangle);
             }
         }
 
@@ -371,7 +361,7 @@ public class Midlet extends MIDlet {
             // Draw the triangles
             //drawPolygon(g, plane, aspect, focal, projector);
             //drawPolygon(g, floor, aspect, focal, projector);
-            drawPolygon(g, cube, aspect, focal, projector);
+            drawPolygon(g, cube);
 
             // Debug rendering
             if (Configuration.DEBUG_RENDERING) {
@@ -443,12 +433,12 @@ public class Midlet extends MIDlet {
 
             switch (keyCode) {
                 case -3: {
-                    Quaternion q = Quaternion.fromAxisAngle(0, 1, 0, -0.1f);
+                    Quaternion q = Quaternion.fromAxisAngle(0, 1, 0, 0.1f);
                     camera.orientation = q.multiply(camera.orientation);
                     break;
                 }
                 case -4: {
-                    Quaternion q = Quaternion.fromAxisAngle(0, 1, 0, 0.1f);
+                    Quaternion q = Quaternion.fromAxisAngle(0, 1, 0, -0.1f);
                     camera.orientation = q.multiply(camera.orientation);
                     break;
                 }
@@ -477,10 +467,10 @@ public class Midlet extends MIDlet {
                     dz = 0.1f;
                     break;
                 case KEY_NUM4:
-                    dx = 0.1f;
+                    dx = -0.1f;
                     break;
                 case KEY_NUM6:
-                    dx = -0.1f;
+                    dx = 0.1f;
                     break;
             }
 

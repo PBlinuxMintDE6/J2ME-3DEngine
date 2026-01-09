@@ -20,19 +20,19 @@ public class Camera {
         this.z = z;
     }
 
-    public float[] rotateVector(Quaternion q, float x, float y, float z) {
+    public float[] rotateVector(Quaternion q, float cx, float cy, float cz) {
         float qx = q.x, qy = q.y, qz = q.z, qw = q.w;
 
         // t = 2 * cross(q.xyz, v)
-        float tx = 2 * (qy * z - qz * y);
-        float ty = 2 * (qz * x - qx * z);
-        float tz = 2 * (qx * y - qy * x);
+        float tx = 2 * (qy * cz - qz * cy);
+        float ty = 2 * (qz * cx - qx * cz);
+        float tz = 2 * (qx * cy - qy * cx);
 
         // v' = v + qw * t + cross(q.xyz, t)
         return new float[]{
-            x + qw * tx + (qy * tz - qz * ty),
-            y + qw * ty + (qz * tx - qx * tz),
-            z + qw * tz + (qx * ty - qy * tx)
+            cx + qw * tx + (qy * tz - qz * ty),
+            cy + qw * ty + (qz * tx - qx * tz),
+            cz + qw * tz + (qx * ty - qy * tx)
         };
     }
 
@@ -88,6 +88,32 @@ public class Camera {
         }
 
         return new float[]{tx, ty, tz};
+    }
+
+    public Matrix4 getViewMatrix() {
+        Quaternion q = orientation.conjugate();
+
+        float qx = q.x, qy = q.y, qz = q.z, w = q.w;
+
+        Matrix4 v = Matrix4.identity();
+
+        v.m[0] = 1 - 2 * qy * qy - 2 * qz * qz;
+        v.m[1] = 2 * qx * qy + 2 * w * qz;
+        v.m[2] = 2 * qx * qz - 2 * w * qy;
+
+        v.m[4] = 2 * qx * qy - 2 * w * qz;
+        v.m[5] = 1 - 2 * qx * qx - 2 * qz * qz;
+        v.m[6] = 2 * qy * qz + 2 * w * qx;
+
+        v.m[8] = 2 * qx * qz + 2 * w * qy;
+        v.m[9] = 2 * qy * qz - 2 * w * qx;
+        v.m[10] = 1 - 2 * qx * qx - 2 * qy * qy;
+
+        v.m[12] = -(v.m[0] * qx + v.m[4] * qy + v.m[8] * qz);
+        v.m[13] = -(v.m[1] * qx + v.m[5] * qy + v.m[9] * qz);
+        v.m[14] = -(v.m[2] * qx + v.m[6] * qy + v.m[10] * qz);
+
+        return v;
     }
 
     // Move the camera

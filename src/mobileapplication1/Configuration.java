@@ -11,7 +11,7 @@ package mobileapplication1;
  * @author c
  */
 public class Configuration {
-    public static final double FOV_DEGREES = 30;
+    public static final float FOV_DEGREES = 70;
     public static final boolean DEBUG_RENDERING = true;
     public static final boolean WIREFRAME_RENDER = false;
     public static final boolean CULL_REAR = false;
