@@ -65,6 +65,7 @@ public class Midlet extends MIDlet {
         final float aspect = (float) getWidth() / (float) getHeight();
 
         World world = new World();
+        Scripter script = new Scripter();
         Camera camera = new Camera(0, 0, 0);
         Matrix4 view = camera.getViewMatrix();
         Matrix4 proj = Matrix4.perspective(
@@ -357,10 +358,9 @@ public class Midlet extends MIDlet {
         protected void paint(Graphics g) {
             g.setColor(0, 0, 0);
             g.fillRect(0, 0, getWidth(), getHeight());
+            
+            script.Execute(camera);
 
-            // Draw the triangles
-            //drawPolygon(g, plane, aspect, focal, projector);
-            //drawPolygon(g, floor, aspect, focal, projector);
             drawPolygon(g, cube);
 
             // Debug rendering
