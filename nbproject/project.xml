@@ -3,7 +3,7 @@
     <type>org.netbeans.modules.kjava.j2meproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/j2me-project">
-            <name>MobileApplication1</name>
+            <name>J2ME-3DEngine</name>
             <minimum-ant-version>1.6</minimum-ant-version>
         </data>
     </configuration>

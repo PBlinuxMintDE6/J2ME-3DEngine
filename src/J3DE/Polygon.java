@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package mobileapplication1;
+package J3DE;
 
 import java.util.Vector;
 

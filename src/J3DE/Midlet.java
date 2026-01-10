@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package mobileapplication1;
+package J3DE;
 
 import javax.microedition.midlet.*;
 import javax.microedition.lcdui.*;
