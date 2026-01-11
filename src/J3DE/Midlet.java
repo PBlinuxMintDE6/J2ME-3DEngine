@@ -358,11 +358,34 @@ public class Midlet extends MIDlet {
         protected void paint(Graphics g) {
             g.setColor(0, 0, 0);
             g.fillRect(0, 0, getWidth(), getHeight());
-            
+
             try {
                 script.Execute(camera);
-            } finally {
-                
+            } catch (ScriptException e) {
+                g.setColor(255, 0, 0);
+                g.fillRect(0, 0, getWidth(), getHeight());
+                g.setColor(255, 255, 255);
+                g.drawString(
+                        "A script error has occurred",
+                        0, 0,
+                        Graphics.TOP | Graphics.LEFT
+                );
+                g.drawString(
+                        "The error is marked as fatal",
+                        0, 16,
+                        Graphics.TOP | Graphics.LEFT
+                );
+                g.drawString(
+                        "Please force quit this application",
+                        0, 32,
+                        Graphics.TOP | Graphics.LEFT
+                );
+                g.drawString(
+                        "E: " + e.getMessage(),
+                        0, 48,
+                        Graphics.TOP | Graphics.LEFT
+                );
+                return; // Prevent rest of the graphics from running
             }
 
             drawPolygon(g, cube);

@@ -37,6 +37,24 @@ public class Scripter {
         return sb.toString();
     }
 
+    private void error(String text, boolean fatal) {
+        if ((fatal || Configuration.FORCE_ALL_SCRIPT_ERRORS_FATAL) && Configuration.CRITICAL_SCRIPT_ERRORS) {
+            throw new ScriptException(text);
+        } else {
+            System.out.println(text);
+            scriptErrors++;
+        }
+    }
+
+    private void error(String text) {
+        if (Configuration.FORCE_ALL_SCRIPT_ERRORS_FATAL && Configuration.CRITICAL_SCRIPT_ERRORS) {
+            throw new ScriptException(text);
+        } else {
+            System.out.println(text);
+            scriptErrors++;
+        }
+    }
+
     private Vector splitManifest(InputStream data) {
         if (data == null) {
             return null;
@@ -54,7 +72,7 @@ public class Scripter {
                 }
                 int hash = line.indexOf("#");
                 if (hash == -1) {
-                    throw new RuntimeException("Invalid manifest line: " + line);
+                    error("Invalid manifest line: " + line);
                 }
 
                 String script = line.substring(0, hash);
@@ -70,8 +88,8 @@ public class Scripter {
     private String loadScript(String filename) {
         InputStream is = getClass().getResourceAsStream("/J3DE/Scripts/" + filename);
         if (is == null) {
-            throw new RuntimeException("Script not found: " + filename);
-            //return null;
+            error("Script not found: " + filename);
+            return null;
         }
 
         StringBuffer sb = new StringBuffer();
@@ -109,8 +127,10 @@ public class Scripter {
             if (is != null) {
                 try {
                     String line;
+                    int lineNum = 0;
                     while ((line = readLine(is)) != null) {
                         line = line.trim();
+                        lineNum ++;
                         if (line.length() == 0 || line.startsWith("//")) {
                             continue;
                         }
@@ -119,12 +139,11 @@ public class Scripter {
                             int firstQuote = line.indexOf('"');
                             int lastQuote = line.lastIndexOf('"');
                             if (firstQuote == -1 || lastQuote == -1 || firstQuote == lastQuote) {
-                                System.out.println("Error parsing print command: " + line);
-                                scriptErrors ++;
+                                error("Error parsing print command: " + line);
                                 continue;
                             }
                             String text = line.substring(firstQuote + 1, lastQuote);
-                            System.out.println(text); // or render in-game
+                            System.out.println(text);
                         } else if (line.startsWith("teleport ")) {
                             // Remove "teleport " and split manually by spaces
                             String coords = line.substring(9).trim();
@@ -132,8 +151,7 @@ public class Scripter {
                             int secondSpace = coords.indexOf(' ', firstSpace + 1);
 
                             if (firstSpace == -1 || secondSpace == -1) {
-                                System.out.println("Error parsing teleport command: " + line);
-                                scriptErrors ++;
+                                error("Error parsing teleport command: " + line);
                                 continue;
                             }
 
@@ -143,12 +161,11 @@ public class Scripter {
                                 float z = Float.parseFloat(coords.substring(secondSpace + 1));
                                 camera.setPosition(x, y, z);
                             } catch (NumberFormatException e) {
-                                System.out.println("Invalid numbers in teleport: " + line);
-                                scriptErrors ++;
+                                error("Malformed numbers in teleport: " + line);
+                                scriptErrors++;
                             }
                         } else {
-                            System.out.println("Unknown command: " + line);
-                            scriptErrors ++;
+                            error(scriptFile + ":" + Integer.toString(lineNum) + " - Unkn cmd: " + line);
                         }
                     }
                     is.close();
