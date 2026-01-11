@@ -17,20 +17,26 @@ public class Scripter {
     private Vector files;
     public int scriptErrors = 0;
 
-    private static String readLine(InputStream in) throws IOException {
+    public Vector globalVars = new Vector();
+
+    private static String readLine(InputStream in) {
         StringBuffer sb = new StringBuffer();
-        int c;
+        try {
+            int c;
 
-        while ((c = in.read()) != -1) {
-            if (c == '\n') {
-                break;
+            while ((c = in.read()) != -1) {
+                if (c == '\n') {
+                    break;
+                }
+                if (c != '\r') { // ignore CR
+                    sb.append((char) c);
+                }
             }
-            if (c != '\r') { // ignore CR
-                sb.append((char) c);
-            }
-        }
 
-        if (c == -1 && sb.length() == 0) {
+            if (c == -1 && sb.length() == 0) {
+                return null;
+            }
+        } catch (IOException e) {
             return null;
         }
 
@@ -59,49 +65,185 @@ public class Scripter {
         if (data == null) {
             return null;
         }
-        try {
-            Vector lines = new Vector();
-            while (true) {
-                String line = readLine(data);
-                if (line == null) {
-                    break;
+        Vector lines = new Vector();
+        while (true) {
+            String line = readLine(data);
+            if (line == null) {
+                break;
+            }
+            line = line.trim();
+            if (line.length() == 0 || line.startsWith("//")) {
+                continue;
+            }
+            int hash = line.indexOf("#");
+            if (hash == -1) {
+                error("Invalid manifest line: " + line);
+            }
+
+            String script = line.substring(0, hash);
+            String target = line.substring(hash + 1);
+            lines.addElement(new String[]{script, target});
+        }
+        return lines;
+    }
+
+    private boolean isLetter(char c) {
+        return (c >= 'a' && c <= 'z')
+                || (c >= 'A' && c <= 'Z');
+    }
+
+    private boolean isDigit(char c) {
+        return (c >= '0' && c <= '9');
+    }
+
+    private boolean isLetterOrDigit(char c) {
+        return isLetter(c) || isDigit(c);
+    }
+
+    private Vector tokenize(String line) {
+        Vector tokens = new Vector();
+        int i = 0;
+
+        while (i < line.length()) {
+            char c = line.charAt(i);
+
+            // Skip whitespace
+            if (c == ' ' || c == '\t') {
+                i++;
+                continue;
+            }
+
+            // String literal
+            if (c == '"') {
+                i++;
+                StringBuffer sb = new StringBuffer();
+                while (i < line.length() && line.charAt(i) != '"') {
+                    sb.append(line.charAt(i++));
                 }
-                line = line.trim();
-                if (line.length() == 0 || line.startsWith("//")) {
-                    continue;
+                if (i >= line.length()) {
+                    error("Unterminated string literal", true);
                 }
-                int hash = line.indexOf("#");
-                if (hash == -1) {
-                    error("Invalid manifest line: " + line);
+                i++; // closing quote
+                tokens.addElement(new Token(Token.STRING, sb.toString()));
+                continue;
+            }
+
+            // Number
+            if ((c >= '0' && c <= '9') || c == '-') {
+                StringBuffer sb = new StringBuffer();
+                while (i < line.length()) {
+                    char n = line.charAt(i);
+                    if ((n >= '0' && n <= '9') || n == '.' || n == '-') {
+                        sb.append(n);
+                        i++;
+                    } else {
+                        break;
+                    }
+                }
+                tokens.addElement(new Token(Token.NUMBER, sb.toString()));
+                continue;
+            }
+
+            // Identifier
+            if (isLetter(c) || c == '_') {
+                StringBuffer sb = new StringBuffer();
+                sb.append(c); // first character
+                i++;
+
+                while (i < line.length()) {
+                    char n = line.charAt(i);
+                    if (isLetterOrDigit(n) || n == '_' || n == '.') {
+                        sb.append(n);
+                        i++;
+                    } else {
+                        break;
+                    }
                 }
 
-                String script = line.substring(0, hash);
-                String target = line.substring(hash + 1);
-                lines.addElement(new String[]{script, target});
+                tokens.addElement(new Token(Token.IDENT, sb.toString()));
+                continue;
             }
-            return lines;
-        } catch (IOException e) {
-            return null;
+
+            // Symbols (= + etc)
+            tokens.addElement(new Token(Token.SYMBOL, String.valueOf(c)));
+            i++;
+        }
+
+        return tokens;
+    }
+
+    private String getVar(String name, Vector localVars) {
+        for (int i = 0; i < localVars.size(); i++) {
+            ScriptVariable v = (ScriptVariable) localVars.elementAt(i);
+            if (v.name.equals(name)) {
+                return v.value;
+            }
+        }
+
+        for (int i = 0; i < globalVars.size(); i++) {
+            ScriptVariable v = (ScriptVariable) globalVars.elementAt(i);
+            if (v.name.equals(name)) {
+                return v.value;
+            }
+        }
+
+        error("Undefined variable: " + name, true);
+        return null;
+    }
+
+    private void setVar(String name, String value, boolean isGlobal, Vector localVars) {
+        Vector table = isGlobal ? globalVars : localVars;
+        for (int i = 0; i < table.size(); i++) {
+            ScriptVariable v = (ScriptVariable) table.elementAt(i);
+            if (v.name.equals(name)) {
+                v.value = value;
+                return;
+            }
+        }
+        table.addElement(new ScriptVariable(name, value));
+    }
+
+    private void ePrint(Vector tokens, Vector localVars) {
+        if (tokens.size() != 2) {
+            error("print expects 1 argument got " + Integer.toString(tokens.size() - 1), true);
+        }
+
+        Token t = (Token) tokens.elementAt(1);
+
+        if (t.type == Token.STRING) {
+            System.out.println(t.text);
+        } else if (t.type == Token.IDENT) {
+            System.out.println(getVar(t.text, localVars));
+        } else {
+            error("print expects a string or variable", true);
         }
     }
 
-    private String loadScript(String filename) {
-        InputStream is = getClass().getResourceAsStream("/J3DE/Scripts/" + filename);
-        if (is == null) {
-            error("Script not found: " + filename);
-            return null;
+    private void eVar(Vector tokens, Vector localVars) {
+        if (tokens.size() < 4) {
+            error("Malformed var declaration", true);
+            return;
+        } else {
         }
 
-        StringBuffer sb = new StringBuffer();
-        try {
-            String line;
-            while ((line = readLine(is)) != null) {
-                sb.append(line).append("\n");
-            }
-        } catch (IOException e) {
-            return null;
+        Token nameT = (Token) tokens.elementAt(1);
+        Token eqT = (Token) tokens.elementAt(2);
+        Token valueT = (Token) tokens.elementAt(3);
+
+        if (!"=".equals(eqT.text)) {
+            error("Invalid variable declaration: No =", true);
+            return;
         }
-        return sb.toString();
+
+        boolean isGlobal = false;
+        String varName = nameT.text;
+
+        if (varName.startsWith("G.")) {
+            isGlobal = true;
+            varName = varName.substring(2);
+        }
+
+        setVar(varName, valueT.text, isGlobal, localVars);
     }
 
     public Scripter() {
@@ -127,50 +269,61 @@ public class Scripter {
             if (is != null) {
                 try {
                     String line;
+                    Vector localVars = new Vector();
+                    setVar("scriptName", scriptFile, false, localVars);
                     int lineNum = 0;
                     while ((line = readLine(is)) != null) {
                         line = line.trim();
-                        lineNum ++;
-                        if (line.length() == 0 || line.startsWith("//")) {
+                        lineNum++;
+                        Vector tokens = tokenize(line);
+                        if (tokens.isEmpty() || line.startsWith("//")) {
                             continue;
                         }
 
-                        if (line.startsWith("print ")) {
-                            int firstQuote = line.indexOf('"');
-                            int lastQuote = line.lastIndexOf('"');
-                            if (firstQuote == -1 || lastQuote == -1 || firstQuote == lastQuote) {
-                                error("Error parsing print command: " + line);
-                                continue;
-                            }
-                            String text = line.substring(firstQuote + 1, lastQuote);
-                            System.out.println(text);
-                        } else if (line.startsWith("teleport ")) {
-                            // Remove "teleport " and split manually by spaces
-                            String coords = line.substring(9).trim();
-                            int firstSpace = coords.indexOf(' ');
-                            int secondSpace = coords.indexOf(' ', firstSpace + 1);
+                        Token cmd = (Token) tokens.elementAt(0);
 
-                            if (firstSpace == -1 || secondSpace == -1) {
-                                error("Error parsing teleport command: " + line);
-                                continue;
-                            }
-
-                            try {
-                                float x = Float.parseFloat(coords.substring(0, firstSpace));
-                                float y = Float.parseFloat(coords.substring(firstSpace + 1, secondSpace));
-                                float z = Float.parseFloat(coords.substring(secondSpace + 1));
-                                camera.setPosition(x, y, z);
-                            } catch (NumberFormatException e) {
-                                error("Malformed numbers in teleport: " + line);
-                                scriptErrors++;
-                            }
-                        } else {
-                            error(scriptFile + ":" + Integer.toString(lineNum) + " - Unkn cmd: " + line);
+                        if (cmd.type != Token.IDENT) {
+                            error("Expected command", true);
                         }
+
+                        if ("print".equals(cmd.text)) {
+                            ePrint(tokens, localVars);
+                        } else if ("var".equals(cmd.text)) {
+                            eVar(tokens, localVars);
+                        } else {
+                            error(scriptFile + ":" + lineNum + " - Unknown command: " + line);
+                        }
+
+                        /*
+                         String text = line.substring(firstQuote + 1, lastQuote);
+                         System.out.println(text);
+                         } else if (line.startsWith("teleport ")) {
+                         // Remove "teleport " and split manually by spaces
+                         String coords = line.substring(9).trim();
+                         int firstSpace = coords.indexOf(' ');
+                         int secondSpace = coords.indexOf(' ', firstSpace + 1);
+
+                         if (firstSpace == -1 || secondSpace == -1) {
+                         error("Error parsing teleport command: " + line);
+                         continue;
+                         }
+
+                         try {
+                         float x = Float.parseFloat(coords.substring(0, firstSpace));
+                         float y = Float.parseFloat(coords.substring(firstSpace + 1, secondSpace));
+                         float z = Float.parseFloat(coords.substring(secondSpace + 1));
+                         camera.setPosition(x, y, z);
+                         } catch (NumberFormatException e) {
+                         error("Malformed numbers in teleport: " + line);
+                         scriptErrors++;
+                         }
+                         } else {
+                         error(scriptFile + ":" + Integer.toString(lineNum) + " - Unkn cmd: " + line);
+                         }
+                         */
                     }
                     is.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         }

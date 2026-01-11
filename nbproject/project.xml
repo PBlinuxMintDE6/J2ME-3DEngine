@@ -7,7 +7,9 @@
             <minimum-ant-version>1.6</minimum-ant-version>
         </data>
         <spellchecker-wordlist xmlns="http://www.netbeans.org/ns/spellchecker-wordlist/1">
+            <word>scriptName</word>
             <word>teleport</word>
+            <word>var</word>
         </spellchecker-wordlist>
     </configuration>
 </project>
