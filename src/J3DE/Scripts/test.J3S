@@ -1,1 +1,2 @@
 print scriptName
+crash "Funny" 1

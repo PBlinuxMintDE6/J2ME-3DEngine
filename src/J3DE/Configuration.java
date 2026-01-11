@@ -17,5 +17,5 @@ public class Configuration {
     public static final boolean CULL_REAR = false;
     public static final int TARGET_FPS = 60;
     public static final boolean CRITICAL_SCRIPT_ERRORS = true;
-    public static final boolean FORCE_ALL_SCRIPT_ERRORS_FATAL = true;
+    public static final boolean FORCE_ALL_SCRIPT_ERRORS_FATAL = false;
 }

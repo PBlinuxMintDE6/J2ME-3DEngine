@@ -246,6 +246,27 @@ public class Scripter {
         setVar(varName, valueT.text, isGlobal, localVars);
     }
 
+    private void eCrash(Vector tokens, Vector localVars, int lineNum, String scriptName) {
+        Token message = null;
+        Token fatal = null;
+        if (tokens.size() > 1) {
+            message = (Token) tokens.elementAt(1);
+            if (tokens.size() > 2) {
+                fatal = (Token) tokens.elementAt(2);
+            }
+        }
+        boolean fatalCrash = (fatal != null);
+        String crashMessage = "Unknwn error";
+        if (message != null) {
+            if (message.type == Token.STRING) {
+                crashMessage = message.text;
+            } else if (message.type == Token.IDENT) {
+                crashMessage = getVar(message.text, localVars);
+            }
+        }
+        error(scriptName + ":" + lineNum + " - " + crashMessage, fatalCrash);
+    }
+
     public Scripter() {
         InputStream is = getClass().getResourceAsStream(
                 "/J3DE/Scripts/manifest.J3M"
@@ -290,8 +311,10 @@ public class Scripter {
                             ePrint(tokens, localVars);
                         } else if ("var".equals(cmd.text)) {
                             eVar(tokens, localVars);
+                        } else if ("crash".equals(cmd.text)) {
+                            eCrash(tokens, localVars, lineNum, scriptFile);
                         } else {
-                            error(scriptFile + ":" + lineNum + " - Unknown command: " + line);
+                            error(scriptFile + ":" + lineNum + " - Uknwn cmd: " + line);
                         }
 
                         /*
