@@ -15,6 +15,7 @@ import java.util.Vector;
 public class Scripter {
 
     private Vector files;
+    public int scriptErrors = 0;
 
     private static String readLine(InputStream in) throws IOException {
         StringBuffer sb = new StringBuffer();
@@ -119,6 +120,7 @@ public class Scripter {
                             int lastQuote = line.lastIndexOf('"');
                             if (firstQuote == -1 || lastQuote == -1 || firstQuote == lastQuote) {
                                 System.out.println("Error parsing print command: " + line);
+                                scriptErrors ++;
                                 continue;
                             }
                             String text = line.substring(firstQuote + 1, lastQuote);
@@ -131,6 +133,7 @@ public class Scripter {
 
                             if (firstSpace == -1 || secondSpace == -1) {
                                 System.out.println("Error parsing teleport command: " + line);
+                                scriptErrors ++;
                                 continue;
                             }
 
@@ -141,9 +144,11 @@ public class Scripter {
                                 camera.setPosition(x, y, z);
                             } catch (NumberFormatException e) {
                                 System.out.println("Invalid numbers in teleport: " + line);
+                                scriptErrors ++;
                             }
                         } else {
                             System.out.println("Unknown command: " + line);
+                            scriptErrors ++;
                         }
                     }
                     is.close();

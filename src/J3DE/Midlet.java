@@ -359,7 +359,11 @@ public class Midlet extends MIDlet {
             g.setColor(0, 0, 0);
             g.fillRect(0, 0, getWidth(), getHeight());
             
-            script.Execute(camera);
+            try {
+                script.Execute(camera);
+            } finally {
+                
+            }
 
             drawPolygon(g, cube);
 
@@ -380,6 +384,10 @@ public class Midlet extends MIDlet {
 
                 g.drawString("Last keycode: " + lastInput, 0, 32, Graphics.TOP | Graphics.LEFT);
                 g.drawString("FPS/MSPF: " + lastFPS + "/" + lastFrameTime + "ms", 0, 48, Graphics.TOP | Graphics.LEFT);
+                if (script.scriptErrors > 0) {
+                    g.setColor(255, 0, 0);
+                    g.drawString("Script Errors: " + Integer.toString(script.scriptErrors), 0, 64, Graphics.TOP | Graphics.LEFT);
+                }
             }
         }
 
